@@ -1,4 +1,4 @@
-#! /bin/csh -f
+#! /bin/tcsh -f
 
 if ( $1 != "" ) then
   echo ${0:t} ${1}
@@ -128,6 +128,12 @@ cat >> ${jobfile} << EOFB
 EOFB
 
 else if (${ICE_MACHINE} =~ travisCI*) then
+cat >> ${jobfile} << EOFB
+# nothing to do
+EOFB
+
+
+else if (${ICE_MACHINE} =~ arxt42*) then
 cat >> ${jobfile} << EOFB
 # nothing to do
 EOFB

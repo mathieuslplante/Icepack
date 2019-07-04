@@ -1,4 +1,4 @@
-#! /bin/csh -f
+#! /bin/tcsh -f
 
 if ( $#argv < 1 ) then
   echo "$0 requires one argument, none passed"

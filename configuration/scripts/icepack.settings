@@ -1,4 +1,4 @@
-#! /bin/csh -f
+#! /bin/tcsh -f
 
 setenv ICE_CASENAME   undefined
 setenv ICE_SANDBOX    undefined
