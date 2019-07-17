@@ -21,7 +21,8 @@
       use icepack_intfc, only: icepack_query_tracer_indices
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icedrv_system, only: icedrv_system_abort
-
+      use icedrv_init_SIMBA
+      
       implicit none
       private
       public :: input_data, init_grid2, init_state
@@ -94,7 +95,8 @@
       character (len=char_len) :: shortwave, albedo_type, conduct, fbot_xfer_type, &
          tfrz_option, frzpnd, atmbndy
 
-      logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair
+      logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, &
+		init_SIMBA
 
       integer (kind=int_kind) :: ntrcr
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero
@@ -144,13 +146,14 @@
         update_ocn_f,    l_mpond_fresh,   ustar_min,       &
         fbot_xfer_type,  oceanmixed_ice,  emissivity,      &
         formdrag,        highfreq,        natmiter,        &
-        tfrz_option,     default_season,                   &
+        tfrz_option,     default_season,   init_SIMBA,     &
         precip_units,    fyear_init,      ycycle,          &
         atm_data_type,   ocn_data_type,   bgc_data_type,   &
         atm_data_file,   ocn_data_file,   bgc_data_file,   &
         ice_data_file,                                     &
         atm_data_format, ocn_data_format, bgc_data_format, &
-        data_dir,        trestore,        restore_ocn
+        data_dir,        data_buoy_dir,   trestore,        &
+        restore_ocn
 
       namelist /tracer_nml/   &
         tr_iage,      &
@@ -189,7 +192,7 @@
          phi_c_slow_mode_out=phi_c_slow_mode, &
          phi_i_mushy_out=phi_i_mushy, &
          tfrz_option_out=tfrz_option, kalg_out=kalg, &
-         fbot_xfer_type_out=fbot_xfer_type, puny_out=puny)
+         fbot_xfer_type_out=fbot_xfer_type, puny_out=puny, init_SIMBA_out=init_SIMBA)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call icedrv_system_abort(string=subname, &
           file=__FILE__, line=__LINE__)
@@ -309,7 +312,8 @@
       nx_names(1) = 'icefree'
       nx_names(2) = 'slab'
       nx_names(3) = 'full_ITD'
-      nx_names(4) = 'land'
+      nx_names(4) = 'landfast'
+      nx_names(nx)= 'land'
 
       do n = 1,nx
          diag_file_names=' '
@@ -711,7 +715,7 @@
          phi_c_slow_mode_in=phi_c_slow_mode, &
          phi_i_mushy_in=phi_i_mushy, &
          tfrz_option_in=tfrz_option, kalg_in=kalg, &
-         fbot_xfer_type_in=fbot_xfer_type)
+         fbot_xfer_type_in=fbot_xfer_type, init_SIMBA_in=init_SIMBA)
       call icepack_init_tracer_numbers(ntrcr_in=ntrcr)
       call icepack_init_tracer_flags(tr_iage_in=tr_iage, &
          tr_FY_in=tr_FY, tr_lvl_in=tr_lvl, tr_aero_in=tr_aero, &
@@ -1021,7 +1025,9 @@
 
       real (kind=dbl_kind), dimension (nx), intent(in) :: &
          Tair       ! air temperature  (K)
-
+      real (kind=dbl_kind), dimension (nx) :: &
+         Tair_buoy       ! air temperature from SIMBA 
+         
       ! ocean values may be redefined here, unlike in CICE
       real (kind=dbl_kind), dimension (nx), intent(inout) :: &
          Tf     , & ! freezing temperature (C) 
@@ -1053,7 +1059,8 @@
 
       real (kind=dbl_kind) :: &
          Tsfc, sum, hbar, &
-         rhos, Lfresh, puny
+         rhos, Lfresh, puny,&
+         lat_col, lon_col, hi, hs
 
       real (kind=dbl_kind), dimension(ncat) :: &
          ainit, hinit    ! initial area, thickness
@@ -1067,12 +1074,18 @@
       real (kind=dbl_kind), parameter :: &
          hsno_init = 0.25_dbl_kind   ! initial snow thickness (m)
 
-      logical (kind=log_kind) :: tr_brine, tr_lvl
+      logical (kind=log_kind) :: tr_brine, tr_lvl, init_SIMBA
       integer (kind=int_kind) :: nt_Tsfc, nt_qice, nt_qsno, nt_sice
       integer (kind=int_kind) :: nt_fbri, nt_alvl, nt_vlvl
 
       character(len=*), parameter :: subname='(set_state_var)'
-
+      
+      real (kind=dbl_kind), dimension(nslyr)  ::  Tns 
+      real (kind=dbl_kind), dimension(nslyr)  ::  Tni     
+      
+      namelist /forcing_nml/ init_SIMBA 
+      
+      
       !-----------------------------------------------------------------
       ! query Icepack values
       !-----------------------------------------------------------------
@@ -1081,7 +1094,8 @@
       call icepack_query_tracer_indices( nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
         nt_qsno_out=nt_qsno, nt_sice_out=nt_sice, &
         nt_fbri_out=nt_fbri, nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
-      call icepack_query_parameters(rhos_out=rhos, Lfresh_out=Lfresh, puny_out=puny)
+      call icepack_query_parameters(rhos_out=rhos, Lfresh_out=Lfresh, puny_out=puny, &
+		init_SIMBA_out=init_SIMBA)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call icedrv_system_abort(string=subname, &
          file=__FILE__,line= __LINE__)
@@ -1221,11 +1235,74 @@
       if (icepack_warnings_aborted()) call icedrv_system_abort(string=subname, &
           file=__FILE__, line=__LINE__)
       
+       !-----------------------------------------------------------------
+
+      i = 4  ! land-fast ice slab from SIMBA buoy
+      
+      if ((init_SIMBA) .and. (nx > 4)) then      
+        call get_buoy_data(nslyr, nilyr, Tair_buoy(i), hs, hi, Tns, Tni)
+        print *, 'hs in is = ', hs     
+        print *, 'hi in is = ', hi
+        if (3 <= ncat) then      
+          do n = 1, ncat
+            if ((hi > hin_max(n-1)) .and. (hi < hin_max(n))) then
+               hinit(n) = hi ! m
+               ainit(n) = c1  ! assumes we are using the default ITD boundaries
+            else 
+               ainit(n) = c0
+               hinit(n) = c0     
+            endif              
+          enddo      
+        else
+          ainit(ncat) = c1
+          hinit(ncat) = hi
+        endif
+      
+      do n = 1, ncat
+         ! ice volume, snow volume
+         aicen(i,n) = ainit(n)
+         vicen(i,n) = hinit(n) * ainit(n) ! m
+         vsnon(i,n) = min(aicen(i,n)*hsno_init,p2*vicen(i,n))
+         ! tracers
+         call icepack_init_trcr(Tair  (i  ), Tf   (i  ), &
+                                salinz(i,:), Tmltz(i,:), &
+                                Tsfc,                    &
+                                nilyr,       nslyr,      &
+                                qin   (  :), qsn  (  :))
+        
+         ! surface temperature
+         trcrn(i,nt_Tsfc,n) = Tsfc ! deg C
+         ! ice enthalpy, salinity 
+         do k = 1, nilyr
+            trcrn(i,nt_qice+k-1,n) = qin(k)
+            trcrn(i,nt_sice+k-1,n) = salinz(i,k)
+         enddo
+         ! snow enthalpy
+         do k = 1, nslyr
+            trcrn(i,nt_qsno+k-1,n) = qsn(k)
+         enddo               ! nslyr
+         ! brine fraction
+         if (tr_brine) trcrn(i,nt_fbri,n) = c1
+      enddo 
+        
+!        print *, 'Tair_buoy = ', Tair_buoy
+!        print *, 'Tf = ', Tf       
+!        print *, 'salinz = ', salinz
+!        print *, 'Tni = ', Tni    
+!        print *, 'Tsfc = ', Tsfc       
+!        print *, 'qin_init = ', qin
+!        print *, 'qsn_init = ', qsn   
+!        print *, 'ldfast snow volumes are = ', vsnon(5,:)
+!	print *, 'ldfast ice volumes are = ', vicen(5,n)  
+	
+      endif
+           
+      
       !-----------------------------------------------------------------
       
       ! land
       ! already initialized above (tmask = 0)
-      i = 4
+      i = 5
       sst(i) = c0
       Tf(i) = c0
 
