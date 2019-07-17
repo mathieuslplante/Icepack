@@ -83,6 +83,7 @@
       use icepack_therm_shared  , only: icepack_enthalpy_snow
       use icepack_therm_shared  , only: icepack_init_thermo
       use icepack_therm_shared  , only: icepack_init_trcr
+      use icepack_therm_shared  , only: icepack_init_trcr_SIMBA 
 
       use icepack_warnings, only: icepack_warnings_clear
       use icepack_warnings, only: icepack_warnings_print
