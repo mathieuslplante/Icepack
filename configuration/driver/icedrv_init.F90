@@ -58,7 +58,8 @@
 
       use icedrv_diagnostics, only: diag_file, nx_names
       use icedrv_domain_size, only: nilyr, nslyr, max_ntrcr, ncat, n_aero
-      use icedrv_calendar, only: year_init, istep0
+      use icedrv_calendar, only: year_init, month_init, day_init
+      use icedrv_calendar, only: istep0
       use icedrv_calendar, only: dumpfreq, diagfreq, dump_last
       use icedrv_calendar, only: npt, dt, ndtd, days_per_year, use_leap_years
       use icedrv_restart_shared, only: restart, restart_dir, restart_file
@@ -113,7 +114,8 @@
       !-----------------------------------------------------------------
 
       namelist /setup_nml/ &
-        days_per_year,  use_leap_years, year_init,       istep0,        &
+        days_per_year,  use_leap_years, year_init,       month_init,    &
+	day_init,       istep0,        			&
         dt,             npt,            ndtd,            dump_last,     &
         ice_ic,         restart,        restart_dir,     restart_file,  &
         dumpfreq,       diagfreq,       diag_file,       cpl_bgc
