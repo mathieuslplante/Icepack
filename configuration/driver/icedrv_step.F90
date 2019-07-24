@@ -335,8 +335,10 @@
       use icedrv_flux, only: fresh, frain, fpond, frzmlt, frazil, frz_onset
       use icedrv_flux, only: update_ocn_f, fsalt, Tf, sss, salinz, fhocn, rside
       use icedrv_flux, only: meltl, frazil_diag, flux_bio, faero_ocn 
+      use icedrv_flux, only: dh0, da0, dh0_cumul, da0_cumul     
       use icedrv_init, only: tmask
       use icedrv_state, only: aice, aicen, aice0, trcr_depend
+      use icedrv_state, only: g0n, g1n, hLn, hRn
       use icedrv_state, only: aicen_init, vicen_init, trcrn, vicen, vsnon
       use icedrv_state, only: trcr_base, n_trcr_strata, nt_strata
 
@@ -394,10 +396,16 @@
                            flux_bio  (i,1:nbtrcr),                  &
                            ocean_bio (i,1:nbtrcr),                  &
                            frazil_diag(i),                         &
-                           frz_onset (i), yday)
+                           frz_onset (i), yday, &
+                           g0n	     (i,:),      g1n(i,:), &
+                           hLn	     (i,:),      hRn(i,:), &
+                           dh0(i), da0(i))
 
          endif ! tmask
 
+         dh0_cumul = dh0_cumul  + dh0    
+         da0_cumul = da0_cumul + da0
+         
       enddo                     ! i
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call icedrv_system_abort(string=subname, &

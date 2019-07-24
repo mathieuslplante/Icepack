@@ -8,7 +8,7 @@
 
       use icedrv_kinds
       use icedrv_constants, only: nu_diag, nu_diag_out
-      use icedrv_domain_size, only: nx
+      use icedrv_domain_size, only: nx, nilyr, nslyr, ncat
       use icepack_intfc, only: c0
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters
@@ -60,8 +60,10 @@
       use icedrv_flux, only: frain
       use icedrv_flux, only: Tair, Qa, fsw, fcondtop
       use icedrv_flux, only: meltt, meltb, meltl, snoice
+      use icedrv_flux, only: dh0_cumul, da0_cumul  
       use icedrv_flux, only: dsnow, congel, sst, sss, Tf, fhocn
       use icedrv_state, only: aice, vice, vsno, trcr
+      use icedrv_state, only: trcrn, g0n, g1n, hLn, hRn
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -69,7 +71,7 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         n
+         n, k
 
       logical (kind=log_kind) :: &
          calc_Tsfc
@@ -184,6 +186,15 @@
         write(nu_diag_out+n-1,900) 'sss (ppt)              = ',sss(n)  ! sea surface salinity
         write(nu_diag_out+n-1,900) 'freezing temp (C)      = ',Tf(n)   ! freezing temperature
         write(nu_diag_out+n-1,900) 'heat used (W/m^2)      = ',pfhocn  ! ocean heat used by ice
+        
+        write(nu_diag_out+n-1,900) 'cumul cat vol loss (m)    = ', dh0_cumul(n)       
+        write(nu_diag_out+n-1,900) 'cumul cat area loss (m)   = ', da0_cumul(n)
+        do k = 1, ncat
+          write(nu_diag_out+n-1,900) 'g0 itd constant = ',g0n(n,k)     ! ITD constants
+          write(nu_diag_out+n-1,900) 'g1 itd slope = ',g1n(n,k)        ! ITD category slope     
+          write(nu_diag_out+n-1,900) 'hL itd left limit = ',hLn(n,k)   ! ITD category left boundary
+          write(nu_diag_out+n-1,900) 'hR itd right limit = ',hRn(n,k)  ! ITD category right boundary                 
+	enddo 
         
       end do
 899   format (43x,a24)
