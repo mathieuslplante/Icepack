@@ -106,6 +106,9 @@
       use icedrv_domain_size, only: ncat, nilyr, nslyr, n_aero, nx
       use icedrv_flux, only: frzmlt, sst, Tf, strocnxT, strocnyT, rside, fbot, Tbot, Tsnice
       use icedrv_flux, only: meltsn, melttn, meltbn, congeln, snoicen, uatm, vatm
+      use icedrv_flux, only: meltt_cumul, meltb_cumul, melts_cumul, congel_cumul
+      use icedrv_flux, only: melttn_cumul, meltbn_cumul, meltsn_cumul, congeln_cumul     
+      use icedrv_flux, only: snoice_cumul, snoicen_cumul, dsnown_cumul
       use icedrv_flux, only: wind, rhoa, potT, Qa, zlvl, strax, stray, flatn
       use icedrv_flux, only: fsensn, fsurfn, fcondtopn, fcondbotn
       use icedrv_flux, only: flw, fsnow, fpond, sss, mlt_onset, frz_onset
@@ -313,6 +316,21 @@
         endif ! tr_aero
         
       enddo ! i
+      
+      meltt_cumul = meltt_cumul + meltt 
+      meltb_cumul = meltb_cumul + meltb
+      melts_cumul = melts_cumul + melts
+      congel_cumul = congel_cumul + congel
+      snoice_cumul = snoice_cumul + snoice
+        
+      meltsn_cumul= meltsn_cumul + meltsn*aicen
+      melttn_cumul =  melttn_cumul + melttn*aicen
+      meltbn_cumul = meltbn_cumul + meltbn*aicen
+      congeln_cumul = congeln_cumul + congeln*aicen
+      snoicen_cumul = snoicen_cumul + snoicen*aicen
+      dsnown_cumul = dsnown_cumul + dsnown*aicen       
+      
+      
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call icedrv_system_abort(string=subname, &
           file=__FILE__, line=__LINE__)
@@ -335,6 +353,7 @@
       use icedrv_flux, only: fresh, frain, fpond, frzmlt, frazil, frz_onset
       use icedrv_flux, only: update_ocn_f, fsalt, Tf, sss, salinz, fhocn, rside
       use icedrv_flux, only: meltl, frazil_diag, flux_bio, faero_ocn 
+      use icedrv_flux, only: meltln, meltl_cumul, frazil_cumul, meltln_cumul
       use icedrv_flux, only: dh0, da0, dh0_cumul, da0_cumul     
       use icedrv_init, only: tmask
       use icedrv_state, only: aice, aicen, aice0, trcr_depend
@@ -399,14 +418,20 @@
                            frz_onset (i), yday, &
                            g0n	     (i,:),      g1n(i,:), &
                            hLn	     (i,:),      hRn(i,:), &
-                           dh0(i), da0(i))
+                           dh0       (i),        da0(i)  , &
+                           meltln(i,:) )
 
          endif ! tmask
 
-         dh0_cumul = dh0_cumul  + dh0    
-         da0_cumul = da0_cumul + da0
          
       enddo                     ! i
+
+      dh0_cumul = dh0_cumul  + dh0    
+      da0_cumul = da0_cumul + da0
+      frazil_cumul = frazil_cumul + frazil    
+      meltl_cumul = meltl_cumul + meltl
+      meltln_cumul = meltln_cumul + meltln
+      
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call icedrv_system_abort(string=subname, &
           file=__FILE__, line=__LINE__)

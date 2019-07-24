@@ -868,7 +868,8 @@
                                aicen,      vicen,      &
                                vsnon,      trcrn,      &
                                fzsal,      flux_bio,   &
-                               nbtrcr,     nblyr)
+                               nbtrcr,     nblyr,      &
+                               meltln )
 
       real (kind=dbl_kind), intent(in) :: &
          dt        ! time step (s)
@@ -884,7 +885,8 @@
       real (kind=dbl_kind), dimension (:), intent(inout) :: &
          aicen   , & ! concentration of ice
          vicen   , & ! volume per unit area of ice          (m)
-         vsnon       ! volume per unit area of snow         (m)
+         vsnon   , & ! volume per unit area of snow         (m)
+         meltln      ! volume of lateral ice melt (m/step-->cm/day)
 
       real (kind=dbl_kind), dimension (:,:), intent(in) :: &
          trcrn     ! tracer array
@@ -952,6 +954,7 @@
 
             ! history diagnostics
             meltl = meltl + vicen(n)*rside
+	    meltln(n) = vicen(n)*rside
 
             ! state variables
             vicen_init(n) = vicen(n)
@@ -1536,7 +1539,7 @@
                                      yday, 	   g0n,		  &
                                      g1n, 	   hLn,		  &
                                      hRn,	   dh0_cumul,	  &
-                                     da0_cumul	)
+                                     da0_cumul,    meltln	)
 
       integer (kind=int_kind), intent(in) :: &
          ncat     , & ! number of thickness categories
@@ -1604,6 +1607,7 @@
          aicen    , & ! concentration of ice
          vicen    , & ! volume per unit area of ice          (m)
          vsnon    , & ! volume per unit area of snow         (m)
+         meltln   , & ! volume of lateral melt         (m/step-->cm/day)
          faero_ocn, & ! aerosol flux to ocean  (kg/m^2/s)
          flux_bio , & ! all bio fluxes to ocean
          g0n      , & ! constant coefficient in g(h)
@@ -1722,7 +1726,8 @@
                          aicen,     vicen,         &
                          vsnon,     trcrn,         &
                          fzsal,     flux_bio,      &
-                         nbtrcr,    nblyr)
+                         nbtrcr,    nblyr,	   &
+			 meltln )
       if (icepack_warnings_aborted(subname)) return
 
       !-----------------------------------------------------------------
