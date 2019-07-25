@@ -68,7 +68,7 @@
       use icedrv_flux, only: dsnow, congel, sst, sss, Tf, fhocn
       use icedrv_state, only: aice, vice, vsno, trcr, aicen, vicen, vsnon
       use icedrv_state, only: trcrn, g0n, g1n, hLn, hRn
-
+      use icedrv_arrays_column, only: albicen, albsnon, albpndn
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
 
@@ -163,6 +163,7 @@
         write(nu_diag_out+n-1,*) '----------ice----------'
         write(nu_diag_out+n-1,900) 'area fraction          = ',aice(n)! ice area
         write(nu_diag_out+n-1,900) 'avg ice thickness (m)  = ',hiavg
+        write(nu_diag_out+n-1,900) 'tot ice volume (m)     = ',vice(n) 
         write(nu_diag_out+n-1,900) 'avg snow depth (m)     = ',hsavg
         write(nu_diag_out+n-1,900) 'avg salinity (ppt)     = ',psalt
         write(nu_diag_out+n-1,900) 'avg brine thickness (m)= ',hbravg
@@ -210,7 +211,10 @@
           write(nu_diag_out+n-1,900) 'cat. bottommelt (m)       = ',meltbn_cumul(n,k)
           write(nu_diag_out+n-1,900) 'cat. lateralmelt (m)      = ',meltln_cumul(n,k)
           write(nu_diag_out+n-1,900) 'cat. congel (m)           = ',congeln_cumul(n,k)
-          write(nu_diag_out+n-1,900) 'cat. snowice (m)          = ',snoicen_cumul(n,k)     
+          write(nu_diag_out+n-1,900) 'cat. snowice (m)          = ',snoicen_cumul(n,k) 
+          write(nu_diag_out+n-1,900) 'alb. ice (m)              = ',albicen(n,k)
+          write(nu_diag_out+n-1,900) 'alb. sno (m)              = ',albsnon(n,k)
+          write(nu_diag_out+n-1,900) 'alb. pnd (m)              = ',albpndn(n,k)    
           write(nu_diag_out+n-1,900) 'g0 itd constant 		= ',g0n(n,k)     ! ITD constants
           write(nu_diag_out+n-1,900) 'g1 itd slope 		= ',g1n(n,k)        ! ITD category slope     
           write(nu_diag_out+n-1,900) 'hL itd left limit 	= ',hLn(n,k)   ! ITD category left boundary
