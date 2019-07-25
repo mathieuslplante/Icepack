@@ -157,18 +157,18 @@
       ! dynamics, transport, ridging
       !-----------------------------------------------------------------
       
-      call init_history_dyn
+!      call init_history_dyn
       
-      do k = 1, ndtd
+!      do k = 1, ndtd
         
-        ! ridging
-        call step_dyn_ridge (dt_dyn, ndtd)
+!        ! ridging
+!        call step_dyn_ridge (dt_dyn, ndtd)
         
-        ! clean up, update tendency diagnostics
-        offset = c0
-        call update_state (dt_dyn, daidtd, dvidtd, dagedtd, offset)
+!        ! clean up, update tendency diagnostics
+!        offset = c0
+!        call update_state (dt_dyn, daidtd, dvidtd, dagedtd, offset)
         
-      enddo
+!      enddo
 
 !      call icedrv_diagnostics_debug ('post dynamics')
       
