@@ -105,7 +105,7 @@
       use icedrv_calendar, only: yday
       use icedrv_domain_size, only: ncat, nilyr, nslyr, n_aero, nx
       use icedrv_flux, only: frzmlt, sst, Tf, strocnxT, strocnyT, rside, fbot, Tbot, Tsnice
-      use icedrv_flux, only: meltsn, melttn, meltbn, congeln, snoicen, uatm, vatm
+      use icedrv_flux, only: meltsn, melttn, meltbn, congeln, snoicen, uatm, vatm, phin
       use icedrv_flux, only: meltt_cumul, meltb_cumul, melts_cumul, congel_cumul
       use icedrv_flux, only: melttn_cumul, meltbn_cumul, meltsn_cumul, congeln_cumul     
       use icedrv_flux, only: snoice_cumul, snoicen_cumul, dsnown_cumul
@@ -290,12 +290,13 @@
             faero_atm   (i,1:n_aero),                    &
             faero_ocn   (i,1:n_aero),                    &
             dhsn        (i,:), ffracn      (i,:), &
-            meltt       (i), melttn      (i,:), &
-            meltb       (i), meltbn      (i,:), &
-            melts       (i), meltsn      (i,:), &
-            congel      (i), congeln     (i,:), &
-            snoice      (i), snoicen     (i,:), &
-            dsnown      (i,:), &
+            meltt       (i),   melttn      (i,:), &
+            meltb       (i),   meltbn      (i,:), &
+            melts       (i),   meltsn      (i,:), &
+            congel      (i),   congeln     (i,:), &
+            snoice      (i),   snoicen     (i,:), &
+            dsnown      (i,:),                    &
+            phin        (i,1:nilyr,:),            & 
             lmask_n     (i), lmask_s     (i), &
             mlt_onset   (i), frz_onset   (i), &
             yday,  prescribed_ice)

@@ -51,7 +51,7 @@ contains
                                           zqsn,     zTsn,     &
                                           zSin,               &
                                           Tsf,      Tbot,     &
-                                          sss,                &
+                                          sss,      phi,      &
                                           fsensn,   flatn,    &
                                           flwoutn,  fsurfn,   &
                                           fcondtop, fcondbot, &
@@ -102,6 +102,9 @@ contains
          fadvheat    , & ! flow of heat to ocean due to advection (W m-2)
          snoice          ! snow ice formation
 
+    real (kind=dbl_kind), dimension(1:nilyr), intent(out) :: &
+         phi             ! liquid fraction
+
     real (kind=dbl_kind), intent(inout):: &
          Tsf             ! ice/snow surface temperature (C)
 
@@ -116,7 +119,6 @@ contains
     real(kind=dbl_kind), dimension(1:nilyr) :: &
          zqin0       , & ! ice layer enthalpy (J m-3) at start of timestep
          zSin0       , & ! internal ice layer salinities (ppt) at start of timestep
-         phi         , & ! liquid fraction
          km          , & ! ice conductivity (W m-1 K-1)
          dSdt            ! gravity drainage desalination rate for slow mode (ppt s-1)
 
