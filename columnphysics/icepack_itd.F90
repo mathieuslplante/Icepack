@@ -1701,7 +1701,9 @@
 
       real (kind=dbl_kind), dimension(5) :: wmo5 ! data for wmo itd
       real (kind=dbl_kind), dimension(6) :: wmo6 ! data for wmo itd
-      real (kind=dbl_kind), dimension(7) :: wmo7 ! data for wmo itd
+      real (kind=dbl_kind), dimension(7) :: wmo7 ! data for wmo itd              
+      real (kind=dbl_kind), dimension(10) :: wmo10 ! data for wmo itd
+
 
       character(len=*),parameter :: subname='(icepack_init_itd)'
 
@@ -1724,6 +1726,14 @@
                   0.30_dbl_kind, 0.70_dbl_kind,  &
                   1.20_dbl_kind, 2.00_dbl_kind,  &
                   999._dbl_kind  /
+
+      ! all thickness categories 
+      data wmo10 / 0.10_dbl_kind, 0.15_dbl_kind, &
+                   0.30_dbl_kind, 0.50_dbl_kind, &
+                   0.70_dbl_kind, 1.20_dbl_kind, &
+                   2.00_dbl_kind, 4.00_dbl_kind, &
+                   6.00_dbl_kind, 999._dbl_kind  /
+
 
       rncat = real(ncat, kind=dbl_kind)
       d1 = 3.0_dbl_kind / rncat
@@ -1828,6 +1838,11 @@
          hin_max(0) = c0
          do n = 1, ncat
             hin_max(n) = wmo7(n)
+         enddo
+       elseif (ncat == 10) then
+         hin_max(0) = c0
+         do n = 1, ncat
+            hin_max(n) = wmo10(n)
          enddo
        else
          call icepack_warnings_add(subname//' kcatbound=2 (WMO) must have ncat=5, 6 or 7')
