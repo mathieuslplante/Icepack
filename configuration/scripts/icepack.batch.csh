@@ -112,6 +112,12 @@ cat >> ${jobfile} << EOFB
 #SBATCH --qos=standby
 EOFB
 
+
+else if (${ICE_MACHINE} =~ robert* || ${ICE_MACHINE} =~ underhill* || ${ICE_MACHINE} =~ ppp6* || ${ICE_MACHINE} =~ ppp5*) then
+cat >> ${jobfile} << EOFB
+# nothing to do
+EOFB
+
 else if (${ICE_MACHINE} =~ loft*) then
 cat >> ${jobfile} << EOFB
 # nothing to do
