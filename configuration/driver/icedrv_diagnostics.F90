@@ -59,6 +59,7 @@
       use icedrv_flux, only: fswabs, flw, flwout, fsens, fsurf, flat
       use icedrv_flux, only: frain
       use icedrv_flux, only: Tair, Qa, fsw, fcondtop
+      use icedrv_flux, only: fbot, fcondbot
       use icedrv_flux, only: meltt, meltb, meltl, snoice, phin
       use icedrv_flux, only: dh0_cumul, da0_cumul  
       use icedrv_flux, only: meltt_cumul, meltb_cumul, melts_cumul, congel_cumul
@@ -91,7 +92,8 @@
       real (kind=dbl_kind), dimension (nx) :: &
          work1, work2
       real (kind=dbl_kind), dimension (nilyr) :: &
-         Tinterni   
+         Tinterni   , &
+         zqin_print
       real (kind=dbl_kind), dimension (nslyr) :: &
          Tinterns        
 
@@ -148,14 +150,13 @@
         pdhs(n) = vsno(n) - pdhs(n)  ! snow thickness change
         pde(n) =-(work1(n)- pde(n))/dt ! ice/snow energy change
         pfhocn = -fhocn(n)        ! ocean heat used by ice
-  
         call calc_vertical_profile(nilyr,    nslyr,   &
-                 aice(n),  vice(n),   vsno(n),   &
+                 aice(n),  vice(n),   vsno(n),  zqin_print, &
                  trcr (n,nt_qice:nt_qice+nilyr-1), Tinterni,    &
                  trcr (n,nt_qsno:nt_qsno+nslyr-1), Tinterns,    &
                  trcr (n,nt_sice:nt_sice+nilyr-1))
-                 
-
+        
+        print *, 'Enthalpy printing: ', zqin_print
 
         !-----------------------------------------------------------------
         ! start spewing
@@ -204,11 +205,12 @@
         write(nu_diag_out+n-1,900) 'effective dhs (m)      = ',pdhs(n)   ! snow thickness change
         write(nu_diag_out+n-1,900) 'intnl enrgy chng(W/m^2)= ',pde (n)   ! ice/snow energy change
         write(nu_diag_out+n-1,*) '----------ocn----------'
-        write(nu_diag_out+n-1,900) 'sst (C)                = ',sst(n)  ! sea surface temperature
-        write(nu_diag_out+n-1,900) 'sss (ppt)              = ',sss(n)  ! sea surface salinity
-        write(nu_diag_out+n-1,900) 'freezing temp (C)      = ',Tf(n)   ! freezing temperature
-        write(nu_diag_out+n-1,900) 'heat used (W/m^2)      = ',pfhocn  ! ocean heat used by ice
-        
+        write(nu_diag_out+n-1,900) 'sst (C)                = ',sst(n)    ! sea surface temperature
+        write(nu_diag_out+n-1,900) 'sss (ppt)              = ',sss(n)    ! sea surface salinity
+        write(nu_diag_out+n-1,900) 'freezing temp (C)      = ',Tf(n)     ! freezing temperature
+        write(nu_diag_out+n-1,900) 'heat used (W/m^2)      = ',pfhocn    ! ocean heat used by ice (MP: rather, leftover??)
+        write(nu_diag_out+n-1,900) 'bottom conductive flux = ',fcondbot(n)  ! bottom conductive heat flux
+        write(nu_diag_out+n-1,900) 'bottom heat flux       = ',fbot(n)      ! heat flux at bottom surface of ice (excluding excess) (W/m^2)
         write(nu_diag_out+n-1,900) 'cumul snowmelt (m)          = ',melts_cumul(n)        
         write(nu_diag_out+n-1,900) 'cumul topmelt (m)           = ',meltt_cumul(n)
         write(nu_diag_out+n-1,900) 'cumul bottommelt (m)        = ',meltb_cumul(n)
@@ -224,7 +226,9 @@
 	do k = 1, nilyr
           write(nu_diag_out+n-1,900) 'int layer salinity (ppt) = ',trcr(n,nt_sice+k-1)  ! salinit in each layer k
           write(nu_diag_out+n-1,900) 'int layer ice temp (ppt) = ',Tinterni(k)  ! internal ice temperature in layer k
-	enddo  
+          write(nu_diag_out+n-1,900) 'int lyr ice entlpy (ppt) = ',zqin_print(k)*1d-8  ! internal ice temperature in layer k
+          !print *, 'internal layer enthalpy is: ', trcr(n,nt_qice+k-1), Tinterni(k) 
+	enddo
         do k = 1, ncat
           write(nu_diag_out+n-1,900) 'ice cat. Tsfc 		= ',trcrn(n,nt_Tsfc,k)  ! Temp at top surface
           write(nu_diag_out+n-1,900) 'ice cat. areafrac 	= ',aicen(n,k)  ! ocean heat used by ice
@@ -600,7 +604,7 @@
 ! 
       subroutine calc_vertical_profile(nilyr,    nslyr,    &
                                        aicen,    vicen,    &
-                                       vsnon,              &
+                                       vsnon,    zqin_out, &
                                        zqin,     zTin,     &
                                        zqsn,     zTsn,     &
                                        zSin )
@@ -637,7 +641,8 @@
       real (kind=dbl_kind), dimension (:), intent(in) :: &
          zqin            ! ice layer enthalpy (J m-3)        
       real (kind=dbl_kind), dimension (:), intent(out) :: &
-         zTin            ! internal ice layer temperatures  
+         zTin        , & ! internal ice layer temperatures 
+         zqin_out        ! internal ice layer enthalpy to print 
       real (kind=dbl_kind), dimension (:), intent(out) :: & 
          zTsn            ! snow temperature 
       real (kind=dbl_kind), dimension (:), intent(in) :: &
@@ -684,6 +689,8 @@
       if (aicen .eq. 0d0) then
 	zTsn(:) = 0d0
 	zTin(:) = 0d0            
+	
+	zqin_out(:) = 0d0
       else
       
 	hin    = vicen / aicen
@@ -798,6 +805,7 @@
 	  else
             Tmlts(k) = -zSin(k) * depressT
 	  endif
+	  
 
       !-----------------------------------------------------------------
       ! Compute ice enthalpy
@@ -811,8 +819,11 @@
          
 	  if (ktherm == 2) then
             zTin(k) = temperature_mush(zqin(k),zSin(k))
+	        zqin_out(k) = zqin(k)
 	  else
             zTin(k) = calculate_Tin_from_qin(zqin(k),Tmlts(k))
+            zqin_out(k) = zqin(k)
+            print *, 'Enthalpy out', zqin(k)
 	  endif
 
 	  if (l_brine) then
@@ -846,6 +857,7 @@
                if (ktherm == 2) then
                   zqin_dum = enthalpy_of_melting(zSin(k)) - c1
                   zTin(k) = temperature_mush(zqin_dum,zSin(k))
+                  zqin_out(k) = zqin_dum
                   write(warnstr,*) subname, 'Corrected quantities'
                else
                   call icepack_warnings_setabort(.true.,__FILE__,__LINE__)
@@ -878,6 +890,7 @@
 
 	enddo                     ! nilyr
       endif ! if aicen = 0
+      
       
       end subroutine calc_vertical_profile
       
