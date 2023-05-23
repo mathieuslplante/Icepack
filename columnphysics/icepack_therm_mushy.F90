@@ -9,6 +9,7 @@ module icepack_therm_mushy
   use icepack_parameters, only: hs_min
   use icepack_parameters, only: a_rapid_mode, Rac_rapid_mode
   use icepack_parameters, only: aspect_rapid_mode, dSdt_slow_mode, phi_c_slow_mode
+  use icepack_parameters, only: tr_snowice
   use icepack_mushy_physics, only: density_brine, enthalpy_brine, enthalpy_snow
   use icepack_mushy_physics, only: enthalpy_mush_liquid_fraction
   use icepack_mushy_physics, only: temperature_mush, liquid_fraction
@@ -300,7 +301,8 @@ contains
     if (icepack_warnings_aborted(subname)) return
 
     ! flood snow ice
-    call flood_ice(hsn,        hin,      &
+    if (tr_snowice) then
+        call flood_ice(hsn,        hin,      &
                    nslyr,      nilyr,    & 
                    hslyr,      hilyr,    & 
                    zqsn,       zqin,     &
@@ -308,8 +310,8 @@ contains
                    zSin,       Sbr,      &
                    sss,        qocn,     &
                    snoice,     fadvheat)
-    if (icepack_warnings_aborted(subname)) return
-
+        if (icepack_warnings_aborted(subname)) return
+    endif
   end subroutine temperature_changes_salinity
 
 !=======================================================================
@@ -3235,7 +3237,7 @@ contains
 
        ! ice mass
        ice_mass = c0
-       phi_tot = c1
+       phi_min = c1
        do k = 1, nilyr
           ice_density = min(phi(k) * density_brine(Sbr(k)) + (c1 - phi(k)) * rhoi,rho_ocn)
           ice_mass = ice_mass + ice_density
@@ -3245,10 +3247,11 @@ contains
 
        ! negative freeboard times ocean density
        freeboard_density = max(ice_mass + hsn * rhos - hin * rho_ocn, c0)
-
+       !print *, phi_min
+       !stop
        ! check if have flooded ice
        if (freeboard_density > c0) then
-          if (phi_min > 0.058d0) then 
+          if (phi_min > 0.00d0) then 
               ! sea ice fraction of newly formed snow ice
               phi_snowice = (c1 - rhos / rhoi)
 
@@ -3258,6 +3261,7 @@ contains
               ! calculate thickness of new ice added
               dh = freeboard_density / (rho_ocn - rho_snowice + rhos)
               dh = max(min(dh,hsn),c0)
+              !dh = min(dh,0.001d0)
 
               ! enthalpy of snow that becomes snowice
               call enthalpy_snow_snowice(nslyr, dh, hsn, zqsn, zqsn_snowice)
