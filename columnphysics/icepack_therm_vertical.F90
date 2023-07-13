@@ -1254,14 +1254,13 @@
 
       if (ktherm == 2) then
 
-         qbotm = enthalpy_mush(Tbot, sss)
+         qbotm = enthalpy_mush(Tbot, sss*(phi_i_mushy))
          qbotp = -Lfresh * rhoi * (c1 - phi_i_mushy)
          qbot0 = qbotm - qbotp
 
          dhi = ebot_gro / qbotp     ! dhi > 0
-
          hqtot = dzi(nilyr)*zqin(nilyr) + dhi*qbotm
-         hstot = dzi(nilyr)*zSin(nilyr) + dhi*sss
+         hstot = dzi(nilyr)*zSin(nilyr) + dhi*sss*(phi_i_mushy)
          emlt_ocn = emlt_ocn - qbot0 * dhi
 
       else
@@ -1624,6 +1623,11 @@
          emlt_atm = c0
          emlt_ocn = c0
       endif
+
+
+      print *, qbotm, qbotp, qbot0
+      print *, fhocnn, emlt_ocn,hqtot
+      !stop
 
       ! melt water is no longer zero enthalpy with ktherm=2
       fhocnn = fhocnn + emlt_ocn/dt
@@ -2089,7 +2093,8 @@
                                     dsnown      , phin        , &
                                     lmask_n     , lmask_s     , &
                                     mlt_onset   , frz_onset   , &
-                                    yday        , prescribed_ice)
+                                    yday        , prescribed_ice, &
+                                    zlvs)
 
       integer (kind=int_kind), intent(in) :: &
          ncat    , & ! number of thickness categories
@@ -2116,7 +2121,7 @@
          aice        , & ! sea ice concentration
          vice        , & ! volume per unit area of ice          (m)
          vsno        , & ! volume per unit area of snow         (m)
-         zlvl        , & ! atm level height (m)
+         zlvl        , & ! atm level height for momentum (and scalars if zlvs is not present) (m)
          uatm        , & ! wind velocity components (m/s)
          vatm        , &
          wind        , & ! wind speed (m/s)
@@ -2182,6 +2187,9 @@
          meltb       , & ! basal ice melt           (m/step-->cm/day)
          mlt_onset   , & ! day of year that sfc melting begins
          frz_onset       ! day of year that freezing begins (congel or frazil)
+
+      real (kind=dbl_kind), optional, intent(in) :: &
+         zlvs            ! atm level height for scalars (if different than zlvl) (m)
 
       real (kind=dbl_kind), dimension(:), intent(inout) :: &
          aicen_init  , & ! fractional area of ice
@@ -2354,7 +2362,7 @@
                                         Cdn_atm,                 &
                                         Cdn_atm_ratio_n,         &
                                         uvel,     vvel,          &
-                                        Uref=Urefn)
+                                        Uref=Urefn, zlvs=zlvs)
                if (icepack_warnings_aborted(subname)) return
 
             endif   ! calc_Tsfc or calc_strair
