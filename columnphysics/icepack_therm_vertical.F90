@@ -100,7 +100,8 @@
                                   phi,                    &
                                   mlt_onset,   frz_onset, &
                                   yday,        dsnow,     &
-                                  prescribed_ice)
+                                  prescribed_ice,         &
+                                  w, dSdt)
 
       integer (kind=int_kind), intent(in) :: &
          nilyr   , & ! number of ice layers
@@ -134,7 +135,8 @@
          zSin        ! internal ice layer salinities
 
       real (kind=dbl_kind), dimension (1:nilyr), intent(out) :: &
-         phi         ! liquid fraction
+         phi     , & ! liquid fraction
+         dSdt        ! Change in salinity due to brine physics
 
       ! input from atmosphere
       real (kind=dbl_kind), &
@@ -195,7 +197,8 @@
          snoice   , & ! snow-ice formation       (m/step-->cm/day) 
          dsnow    , & ! change in snow thickness (m/step-->cm/day) 
          mlt_onset, & ! day of year that sfc melting begins 
-         frz_onset    ! day of year that freezing begins (congel or frazil) 
+         frz_onset, & ! day of year that freezing begins (congel or frazil) 
+         w       ! vertical velocity diagnostics
 
       real (kind=dbl_kind), intent(in) :: &
          yday         ! day of year
@@ -257,9 +260,11 @@
       congel  = c0
       snoice  = c0
       dsnow   = c0
+      w       = c0
       zTsn(:) = c0
       zTin(:) = c0
       phi(1:nilyr)  = c0
+      dSdt(1:nilyr) = c0
 
       if (calc_Tsfc) then
          fsensn  = c0
@@ -312,7 +317,8 @@
                                               fsensn,    flatn,     &
                                               flwoutn,   fsurfn,    &
                                               fcondtopn, fcondbotn,  &
-                                              fadvocn,   snoice)
+                                              fadvocn,   snoice, &
+                                              w, dSdt)
             
 
             if (icepack_warnings_aborted(subname)) return
@@ -1254,13 +1260,13 @@
 
       if (ktherm == 2) then
 
-         qbotm = enthalpy_mush(Tbot, sss*(phi_i_mushy))
+         qbotm = enthalpy_mush(Tbot, sss)!*(phi_i_mushy))
          qbotp = -Lfresh * rhoi * (c1 - phi_i_mushy)
          qbot0 = qbotm - qbotp
 
          dhi = ebot_gro / qbotp     ! dhi > 0
          hqtot = dzi(nilyr)*zqin(nilyr) + dhi*qbotm
-         hstot = dzi(nilyr)*zSin(nilyr) + dhi*sss*(phi_i_mushy)
+         hstot = dzi(nilyr)*zSin(nilyr) + dhi*sss!*(phi_i_mushy)
          emlt_ocn = emlt_ocn - qbot0 * dhi
 
       else
@@ -2094,7 +2100,8 @@
                                     lmask_n     , lmask_s     , &
                                     mlt_onset   , frz_onset   , &
                                     yday        , prescribed_ice, &
-                                    zlvs)
+                                    zlvs,                       & 
+                                    w_diag, dSdt_diag)
 
       integer (kind=int_kind), intent(in) :: &
          ncat    , & ! number of thickness categories
@@ -2227,6 +2234,7 @@
          meltbn      , & ! bottom ice melt                 (m)
          congeln     , & ! congelation ice growth          (m)
          snoicen     , & ! snow-ice growth                 (m)
+         w_diag      , & ! vertical velocity diagnostics
          dsnown          ! change in snow thickness (m/step-->cm/day)
 
       real (kind=dbl_kind), dimension(:,:), intent(inout) :: &
@@ -2234,6 +2242,7 @@
          zqin        , & ! ice layer enthalpy (J m-3)
          zSin        , & ! internal ice layer salinities
          phin        , & ! liquid fraction
+         dSdt_diag   , & ! Change in salinity due to brine physics
          Sswabsn     , & ! SW radiation absorbed in snow layers (W m-2)
          Iswabsn         ! SW radiation absorbed in ice layers (W m-2)
 
@@ -2327,7 +2336,9 @@
          congeln(n) = c0
          snoicen(n) = c0
          dsnown (n) = c0
-         phin(:,n) = c0
+         w_diag (n) = c0
+         phin(:,n)  = c0
+         dSdt_diag(:,n) = c0
 
          Trefn  = c0
          Qrefn  = c0
@@ -2443,7 +2454,8 @@
                                  phin(:,n),                   &
                                  mlt_onset,    frz_onset,    &
                                  yday,         dsnown   (n), &
-                                 prescribed_ice)
+                                 prescribed_ice,             &
+                                 w_diag(n), dSdt_diag(:,n) )
             
 
             if (icepack_warnings_aborted(subname)) then
