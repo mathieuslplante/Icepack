@@ -41,9 +41,10 @@
       use icepack_warnings, only: warnstr, icepack_warnings_add
       use icepack_warnings, only: icepack_warnings_setabort, icepack_warnings_aborted
 
-      use icepack_mushy_physics, only: temperature_mush
-      use icepack_mushy_physics, only: liquidus_temperature_mush
+      use icepack_mushy_physics, only: temperature_mush, enthalpy_brine
+      use icepack_mushy_physics, only: liquidus_temperature_mush, liquid_fraction
       use icepack_mushy_physics, only: enthalpy_mush, enthalpy_of_melting
+      use icepack_mushy_physics, only: enthalpy_mush_liquid_fraction, temperature_mush
 
       use icepack_aerosol, only: update_aerosol
       use icepack_atmo, only: neutral_drag_coeffs, icepack_atm_boundary
@@ -101,7 +102,8 @@
                                   mlt_onset,   frz_onset, &
                                   yday,        dsnow,     &
                                   prescribed_ice,         &
-                                  w, dSdt)
+                                  w, dSdt,                &
+                                  sst)
 
       integer (kind=int_kind), intent(in) :: &
          nilyr   , & ! number of ice layers
@@ -163,6 +165,7 @@
       real (kind=dbl_kind), intent(in) :: &
          fbot    , & ! ice-ocean heat flux at bottom surface (W/m^2)
          Tbot    , & ! ice bottom surface temperature (deg C)
+         sst     , & ! ocean temperature (deg C)
          sss         ! ocean salinity
 
       ! coupler fluxes to atmosphere
@@ -418,7 +421,7 @@
                              congel,      snoice,    &
                              mlt_onset,   frz_onset, &
                              zSin,        sss,       &
-                             dsnow)
+                             sst, dsnow)
       if (icepack_warnings_aborted(subname)) return
 
       !-----------------------------------------------------------------
@@ -1041,7 +1044,7 @@
                                     congel,    snoice,   &  
                                     mlt_onset, frz_onset,&
                                     zSin,      sss,      &
-                                    dsnow)
+                                    sst, dsnow)
 
       integer (kind=int_kind), intent(in) :: &
          nilyr , & ! number of ice layers
@@ -1103,6 +1106,7 @@
          zSin            ! ice layer salinity (ppt)
 
       real (kind=dbl_kind), intent(in) :: &
+         sst         , & ! ocean temperature (C)
          sss             ! ocean salinity (PSU) 
 
       ! local variables
@@ -1125,6 +1129,9 @@
          dhs         , & ! change in snow thickness
          Ti          , & ! ice temperature
          Ts          , & ! snow temperature
+         Ttest       , & ! Test dummy for temperature
+         Phitest     , & ! Test dummy for congelation liq. fraction
+         Smax        , & ! Maximum salinity of congelation ice
          qbot        , & ! enthalpy of ice growing at bottom surface (J m-3)
          qsub        , & ! energy/unit volume to sublimate ice/snow (J m-3)
          hqtot       , & ! sum of h*q for two layers
@@ -1152,11 +1159,16 @@
          qmlt            ! enthalpy of melted ice (J m-3) = zero in BL99 formulation
 
       real (kind=dbl_kind) :: &
-         qbotm       , &
-         qbotp       , &
+         qbotm       , & ! enthalpy of newly formed congelation ice
+         qbotp       , & ! enthalpy needed to grow new congelation ice (includes ocean enthalpy)
+         qbotw       , & ! enthalpy transfered to ocean during congelation
          qbot0
 
       character(len=*),parameter :: subname='(thickness_changes)'
+
+      !Uncomment the following to manually set the flooding onset to a 
+      !Specific date
+      !if (yday .ge. 110d0) tr_snowice = .True.
 
       !-----------------------------------------------------------------
       ! Initialize
@@ -1260,15 +1272,27 @@
 
       if (ktherm == 2) then
 
-         qbotm = enthalpy_mush(Tbot, sss)!*(phi_i_mushy))
-         qbotp = -Lfresh * rhoi * (c1 - phi_i_mushy)
-         qbot0 = qbotm - qbotp
+    ! A: Orignal code
+!         qbotm = enthalpy_mush(Tbot, sss)
+!         qbotp = -Lfresh * rhoi * (c1 - phi_i_mushy)
+!         qbotw = qbotm - qbotp
+
+!         dhi = ebot_gro / qbotp     ! dhi > 0
+!         hqtot = dzi(nilyr)*zqin(nilyr) + dhi*qbotm
+!         hstot = dzi(nilyr)*zSin(nilyr) + dhi*sss
+
+    ! B: New parameterization proposed in Plante and et al., (2023):
+         qbotm = enthalpy_mush_liquid_fraction(Tbot, phi_i_mushy)
+         qbotw = enthalpy_brine(sst)
+         qbotp = qbotm - qbotw
 
          dhi = ebot_gro / qbotp     ! dhi > 0
          hqtot = dzi(nilyr)*zqin(nilyr) + dhi*qbotm
-         hstot = dzi(nilyr)*zSin(nilyr) + dhi*sss!*(phi_i_mushy)
-         emlt_ocn = emlt_ocn - qbot0 * dhi
+         hstot = dzi(nilyr)*zSin(nilyr) + dhi*sss*(phi_i_mushy)
 
+
+         emlt_ocn = emlt_ocn - qbotw * dhi
+         
       else
 
          Tmlts = -zSin(nilyr) * depressT 
@@ -1709,7 +1733,7 @@
       wk1 = hsn - hin*(rhow-rhoi)/rhos
 
       if (wk1 > puny .and. hsn > puny) then  ! snow below freeboard
-         dhsn = min(wk1*rhoi/rhow, hsn) ! snow to remove
+         dhsn = min(wk1*rhoi*0.01d0/rhow, hsn) ! snow to remove
          dhin = dhsn * rhos/rhoi        ! ice to add
       endif
 
@@ -2455,7 +2479,8 @@
                                  mlt_onset,    frz_onset,    &
                                  yday,         dsnown   (n), &
                                  prescribed_ice,             &
-                                 w_diag(n), dSdt_diag(:,n) )
+                                 w_diag(n), dSdt_diag(:,n),  &
+                                 sst)
             
 
             if (icepack_warnings_aborted(subname)) then
